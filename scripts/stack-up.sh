@@ -20,6 +20,11 @@ fi
 echo "[stack-up] 启动 PG + Redis …"
 docker compose -f "$ROOT/docker/docker-compose.infra.yml" up -d --wait
 
+echo "[stack-up] 预装 PG 扩展 (pg_trgm, vector) …"
+docker compose -f "$ROOT/docker/docker-compose.infra.yml" exec -T postgres \
+  psql -U freeanima -d freeanima -v ON_ERROR_STOP=1 \
+  < "$FREEANIMA_DIR/engine/db/scripts/ensure-pg-extensions.sql"
+
 bash "$ROOT/scripts/write-test-config.sh"
 
 echo "[stack-up] bun install @ freeanima …"

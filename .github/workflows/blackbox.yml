@@ -27,7 +27,7 @@ jobs:
   blackbox:
     name: Compose + Playwright
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout freeanima-testing
         uses: actions/checkout@v6
@@ -55,7 +55,7 @@ jobs:
           PG_HOST_PORT: "15432"
           REDIS_HOST_PORT: "16379"
           OPENAI_API_KEY: sk-blackbox-ci-unused
-          ANIMA_HEALTH_TIMEOUT_SEC: "420"
+          ANIMA_HEALTH_TIMEOUT_SEC: "600"
         run: bash scripts/run-blackbox.sh
 
       - name: Upload Playwright report

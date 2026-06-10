@@ -1,0 +1,8 @@
+node_modules/
+.anima-runtime/
+.anima-service.log
+.anima.pid
+playwright-report/
+test-results/
+.env
+bun.lockb

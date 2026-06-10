@@ -1,0 +1,34 @@
+# 黑盒测试用 config（由 scripts/write-test-config.sh 复制到 FREEANIMA_HOME）
+# ${VAR} 由 loadConfig expandConfigEnv 展开
+
+llm:
+  default_profile: chat
+  providers:
+    main:
+      backend: openai_compatible
+      base_url: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      api_key: ${OPENAI_API_KEY:-sk-blackbox-unused}
+  profiles:
+    chat:
+      chain:
+        - provider: main
+          model: ${OPENAI_MODEL:-gpt-4o-mini}
+    reflect:
+      chain:
+        - provider: main
+          model: ${OPENAI_MODEL:-gpt-4o-mini}
+    summary:
+      chain:
+        - provider: main
+          model: ${OPENAI_MODEL:-gpt-4o-mini}
+
+database:
+  url: postgresql://freeanima:${PG_PASSWORD:-testing-blackbox}@127.0.0.1:${PG_HOST_PORT:-15432}/freeanima
+
+redis:
+  host: 127.0.0.1
+  port: ${REDIS_HOST_PORT:-16379}
+
+compression:
+  enabled: true
+  max_rounds: 50

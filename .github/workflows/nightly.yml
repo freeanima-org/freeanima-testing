@@ -1,0 +1,45 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  blackbox-main:
+    name: Blackbox @ main
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/checkout@v6
+        with:
+          repository: freeanima-org/freeanima
+          ref: main
+          path: freeanima
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - run: bun install
+
+      - run: bunx playwright install chromium --with-deps
+
+      - name: Run blackbox suite
+        env:
+          PG_PASSWORD: testing-blackbox
+          PG_HOST_PORT: "15432"
+          REDIS_HOST_PORT: "16379"
+          OPENAI_API_KEY: sk-blackbox-ci-unused
+          ANIMA_HEALTH_TIMEOUT_SEC: "420"
+        run: bash scripts/run-blackbox.sh
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-nightly
+          path: playwright-report/
+          retention-days: 7

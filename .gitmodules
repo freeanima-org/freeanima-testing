@@ -1,0 +1,4 @@
+[submodule "freeanima"]
+	path = freeanima
+	url = https://github.com/freeanima-org/freeanima.git
+	branch = main

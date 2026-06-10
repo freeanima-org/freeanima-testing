@@ -1,0 +1,16 @@
+{
+  "name": "freeanima-testing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "stack:up": "bash scripts/stack-up.sh",
+    "stack:down": "bash scripts/stack-down.sh",
+    "test:api": "bun test blackbox/api",
+    "test:ui": "playwright test",
+    "test:blackbox": "bash scripts/run-blackbox.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.50.1",
+    "@types/bun": "latest"
+  }
+}

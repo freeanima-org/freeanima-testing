@@ -31,36 +31,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Restore Docker image cache
-        uses: actions/cache/restore@v4
-        id: docker-cache
-        with:
-          path: /tmp/docker-blackbox-cache
-          key: blackbox-docker-${{ hashFiles('docker/docker-compose.yml', 'bun.lock') }}-${{ env.TESTER_IMAGE }}
-          restore-keys: |
-            blackbox-docker-
-
-      - name: Load Docker image cache
-        if: steps.docker-cache.outputs.cache-hit == 'true'
-        run: bash scripts/ci-docker-cache.sh load
-
       - name: Run blackbox suite
         env:
           PG_PASSWORD: testing-blackbox
           OPENAI_API_KEY: sk-blackbox-ci-unused
           CI: "true"
         run: bash scripts/run-blackbox.sh
-
-      - name: Save Docker image cache
-        if: success() && steps.docker-cache.outputs.cache-hit != 'true'
-        run: bash scripts/ci-docker-cache.sh save
-
-      - name: Upload Docker image cache
-        if: success() && steps.docker-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: /tmp/docker-blackbox-cache
-          key: blackbox-docker-${{ hashFiles('docker/docker-compose.yml', 'bun.lock') }}-${{ env.TESTER_IMAGE }}
 
       - name: Upload Playwright report
         if: failure()

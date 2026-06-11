@@ -20,6 +20,15 @@ wait_bg() {
   fi
 }
 
+ensure_image() {
+  local image=$1
+  if docker image inspect "$image" >/dev/null 2>&1; then
+    echo "[run-blackbox] 镜像已存在，跳过拉取: $image"
+    return 0
+  fi
+  docker pull "$image"
+}
+
 pids=()
 labels=()
 
@@ -33,7 +42,7 @@ start_bg() {
 }
 
 if [[ -n "${TESTER_IMAGE:-}" ]]; then
-  start_bg "拉取 tester 镜像" docker pull "${TESTER_IMAGE}"
+  start_bg "拉取 tester 镜像" ensure_image "${TESTER_IMAGE}"
 else
   start_bg "构建 tester 镜像" compose build tester
 fi

@@ -5,8 +5,8 @@
   "scripts": {
     "stack:up": "bash scripts/stack-up.sh",
     "stack:down": "bash scripts/stack-down.sh",
-    "test:api": "bun test blackbox/api",
-    "test:ui": "playwright test",
+    "test:api": "bash scripts/test-api.sh",
+    "test:ui": "bash scripts/test-ui.sh",
     "test:blackbox": "bash scripts/run-blackbox.sh"
   },
   "devDependencies": {

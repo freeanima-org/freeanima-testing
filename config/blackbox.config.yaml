@@ -1,4 +1,4 @@
-# 黑盒测试用 config（由 scripts/write-test-config.sh 复制到 FREEANIMA_HOME）
+# 黑盒测试用 config（Compose 内部网络：postgres / redis / anima）
 # ${VAR} 由 loadConfig expandConfigEnv 展开
 
 llm:
@@ -23,11 +23,11 @@ llm:
           model: ${OPENAI_MODEL:-gpt-4o-mini}
 
 database:
-  url: postgresql://freeanima:${PG_PASSWORD:-testing-blackbox}@127.0.0.1:${PG_HOST_PORT:-15432}/freeanima
+  url: postgresql://freeanima:${PG_PASSWORD:-testing-blackbox}@postgres:5432/freeanima
 
 redis:
-  host: 127.0.0.1
-  port: ${REDIS_HOST_PORT:-16379}
+  host: redis
+  port: 6379
 
 compression:
   enabled: true

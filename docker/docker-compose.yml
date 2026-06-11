@@ -1,0 +1,79 @@
+# 黑盒全栈：PG + Redis + anima（源码挂载）+ tester（bun + Playwright）
+# 服务间使用固定内部端口，默认不映射宿主机，避免本地端口冲突。
+name: freeanima-blackbox
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: freeanima
+      POSTGRES_USER: freeanima
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-testing-blackbox}
+    volumes:
+      - ./init-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freeanima -d freeanima"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  anima:
+    image: oven/bun:1.3.14
+    working_dir: /app/freeanima
+    volumes:
+      - ${FREEANIMA_DIR:?set FREEANIMA_DIR to freeanima source}:/app/freeanima
+      - anima_node_modules:/app/freeanima/node_modules
+      - ../config/blackbox.config.yaml:/home/bun/.anima/config.yaml:ro
+      - ./anima-entrypoint.sh:/anima-entrypoint.sh:ro
+    environment:
+      FREEANIMA_HOME: /home/bun/.anima
+      PG_PASSWORD: ${PG_PASSWORD:-testing-blackbox}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-blackbox-unused}
+      ANIMA_WEBUI_DEV: "0"
+    entrypoint: ["/bin/sh", "/anima-entrypoint.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'bun -e "fetch(''http://127.0.0.1:2658/api/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
+
+  tester:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.tester
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+      - tester_node_modules:/workspace/node_modules
+    environment:
+      ANIMA_BASE_URL: http://anima:2658
+      CI: ${CI:-}
+      GITHUB_ACTIONS: ${GITHUB_ACTIONS:-}
+    depends_on:
+      anima:
+        condition: service_healthy
+    profiles: ["test"]
+    ipc: host
+    init: true
+
+volumes:
+  anima_node_modules:
+  tester_node_modules:

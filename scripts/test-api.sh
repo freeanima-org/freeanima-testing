@@ -4,5 +4,4 @@ set -euo pipefail
 # shellcheck source=compose-env.sh
 source "$(dirname "$0")/compose-env.sh"
 
-echo "[stack-down] 停止 blackbox compose …"
-compose down -v --remove-orphans 2>/dev/null || true
+compose run --rm tester bun test blackbox/api

@@ -12,6 +12,7 @@ fi
 export PG_PASSWORD="${PG_PASSWORD:-testing-blackbox}"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-sk-blackbox-unused}"
 export COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker/docker-compose.yml}"
+export TESTER_IMAGE="${TESTER_IMAGE:-}"
 
 compose() {
   docker compose -f "$COMPOSE_FILE" "$@"

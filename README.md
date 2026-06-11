@@ -10,7 +10,7 @@
 Compose 内部网络（固定端口，不映射宿主机）
   postgres:5432 ─┐
   redis:6379    ─┼→ anima:2658（oven/bun + 源码 volume mount）
-                 └→ tester（Playwright 官方镜像 + bun）→ http://anima:2658
+                 └→ tester（GHCR 预构建镜像 / 本地 compose build）→ http://anima:2658
 ```
 
 被测代码通过 **checkout / submodule 指定 SHA** 挂载进 anima 容器，不用主仓 npm `@freeanima/cli` 镜像，以便 PR 验证真实源码。
@@ -55,8 +55,9 @@ docker compose -f docker/docker-compose.yml logs -f anima
 |----------|------|
 | `blackbox.yml` | `repository_dispatch` (`pr-verify`)、`workflow_dispatch`、`pull_request`（本仓） |
 | `nightly.yml` | 每日 UTC 02:00、`workflow_dispatch` |
+| `publish-tester-image.yml` | `main` 推送（`Dockerfile.tester` / `package.json` 等变更）、`workflow_dispatch` |
 
-CI 仅需 Docker：构建 `tester` 镜像（基于 `mcr.microsoft.com/playwright` + bun）并在 compose 网络内跑测试。首次构建会拉取较大基础镜像，workflow 超时设为 30 分钟。
+CI 从 GHCR 拉取预构建 `tester` 镜像（`ghcr.io/freeanima-org/freeanima-testing/tester:main`），避免每次 job 内 build+load。本地仍 `compose build tester`。
 
 ### 主仓 dispatch（稍后接入）
 
@@ -79,7 +80,7 @@ client-payload: { "sha": "...", "pr_number": 123, "repo_full_name": "freeanima-o
 blackbox/api/          # fetch 契约测试
 blackbox/ui/           # Playwright（含原 chamber smoke）
 config/                # 黑盒专用 config 模板（compose 服务名）
-docker/                # compose 栈 + tester Dockerfile（Playwright 基础镜像）
+docker/                # compose 栈 + tester Dockerfile（发布至 GHCR）
 generators/            # 测试数据转换（Issue #2）
 raw-conversations/     # LLM 生成文本（Issue #2）
 scripts/               # stack-up / run-blackbox / compose-env

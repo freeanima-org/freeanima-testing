@@ -13,7 +13,10 @@ trap cleanup EXIT
 
 bash "$ROOT/scripts/stack-up.sh"
 
-if [[ "${SKIP_TESTER_BUILD:-0}" != "1" ]]; then
+if [[ -n "${TESTER_IMAGE:-}" ]]; then
+  echo "[run-blackbox] 拉取 tester 镜像: ${TESTER_IMAGE}"
+  docker pull "${TESTER_IMAGE}"
+else
   echo "[run-blackbox] 构建 tester 镜像 …"
   compose build tester
 fi

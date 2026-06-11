@@ -56,6 +56,7 @@ services:
       start_period: 60s
 
   tester:
+    image: ${TESTER_IMAGE:-freeanima-blackbox-tester:local}
     build:
       context: ..
       dockerfile: docker/Dockerfile.tester

@@ -1,0 +1,46 @@
+name: Publish tester image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker/Dockerfile.tester
+      - docker/tester-entrypoint.sh
+      - package.json
+      - bun.lock
+      - .github/workflows/publish-tester-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/freeanima-org/freeanima-testing/tester
+
+jobs:
+  publish:
+    name: Push to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.tester
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:main
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

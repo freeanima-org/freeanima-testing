@@ -11,5 +11,5 @@ if [[ ! -d "$FREEANIMA_DIR" ]]; then
 fi
 
 echo "[stack-up] 启动 postgres + redis + anima …"
-compose up -d postgres redis anima --wait
+compose up -d postgres redis anima --wait --quiet-pull
 echo "[stack-up] 完成"

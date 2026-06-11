@@ -11,20 +11,42 @@ cleanup() {
 }
 trap cleanup EXIT
 
-bash "$ROOT/scripts/stack-up.sh"
+wait_bg() {
+  local pid=$1
+  local label=$2
+  if ! wait "$pid"; then
+    echo "[run-blackbox] 失败: $label" >&2
+    exit 1
+  fi
+}
+
+pids=()
+labels=()
+
+start_bg() {
+  local label=$1
+  shift
+  echo "[run-blackbox] 并行: $label …"
+  "$@" &
+  pids+=($!)
+  labels+=("$label")
+}
 
 if [[ -n "${TESTER_IMAGE:-}" ]]; then
-  echo "[run-blackbox] 拉取 tester 镜像: ${TESTER_IMAGE}"
-  docker pull "${TESTER_IMAGE}"
+  start_bg "拉取 tester 镜像" docker pull "${TESTER_IMAGE}"
 else
-  echo "[run-blackbox] 构建 tester 镜像 …"
-  compose build tester
+  start_bg "构建 tester 镜像" compose build tester
 fi
 
-echo "[run-blackbox] API …"
-compose run --rm tester bun test blackbox/api
+start_bg "拉取 stack 镜像" compose pull -q postgres redis anima
+start_bg "启动 stack" bash "$ROOT/scripts/stack-up.sh"
 
-echo "[run-blackbox] Playwright UI …"
-compose run --rm tester node node_modules/@playwright/test/cli.js test
+for i in "${!pids[@]}"; do
+  wait_bg "${pids[$i]}" "${labels[$i]}"
+done
+
+echo "[run-blackbox] API + Playwright UI …"
+compose run --rm --no-deps tester sh -c \
+  'bun test blackbox/api && node node_modules/@playwright/test/cli.js test'
 
 echo "[run-blackbox] 全部通过"

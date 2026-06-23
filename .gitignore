@@ -4,5 +4,6 @@ node_modules/
 .anima.pid
 playwright-report/
 test-results/
+blackbox-debug/
 .env
 bun.lockb

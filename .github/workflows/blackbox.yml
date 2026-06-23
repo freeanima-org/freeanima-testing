@@ -25,6 +25,9 @@ concurrency:
 
 env:
   TESTER_IMAGE: ghcr.io/freeanima-org/freeanima-testing/tester:main
+  FREEANIMA_SHA: ${{ github.event.client_payload.sha || github.event.inputs.ref || 'main' }}
+  FREEANIMA_PR: ${{ github.event.client_payload.pr_number || '' }}
+  FREEANIMA_REPO: ${{ github.event.client_payload.repo_full_name || 'freeanima-org/freeanima' }}
 
 jobs:
   blackbox:
@@ -42,8 +45,23 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: freeanima-org/freeanima
-          ref: ${{ github.event.client_payload.sha || github.event.inputs.ref || 'main' }}
+          ref: ${{ env.FREEANIMA_SHA }}
           path: freeanima
+
+      - name: 打印被测上下文
+        run: |
+          echo "## 被测上下文" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 项 | 值 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| freeanima ref/sha | \`${FREEANIMA_SHA}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| freeanima commit | \`$(git -C freeanima rev-parse HEAD)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| commit message | $(git -C freeanima log -1 --format=%s) |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${FREEANIMA_PR}" ]]; then
+            echo "| PR | ${FREEANIMA_REPO}#${FREEANIMA_PR} |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo ""
+          echo "[run-blackbox] 被测 freeanima @ $(git -C freeanima rev-parse --short HEAD) — $(git -C freeanima log -1 --format=%s)"
 
       - uses: docker/login-action@v3
         with:
@@ -58,6 +76,26 @@ jobs:
           CI: "true"
         run: bash scripts/run-blackbox.sh
 
+      - name: 写入失败摘要
+        if: failure()
+        run: |
+          if [[ -f blackbox-debug/summary.md ]]; then
+            cat blackbox-debug/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Blackbox 失败" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "未生成 \`blackbox-debug/summary.md\`（可能在 stack 启动前即失败）。请查看 job 日志。" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload blackbox debug bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackbox-debug
+          path: blackbox-debug/
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
@@ -65,20 +103,16 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Upload anima service log
-        if: failure()
-        env:
-          FREEANIMA_DIR: ${{ github.workspace }}/freeanima
-        run: docker compose -f docker/docker-compose.yml logs anima > anima-service.log 2>&1 || true
-
-      - name: Upload anima log artifact
+      - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: anima-service-log
-          path: anima-service.log
+          name: playwright-test-results
+          path: test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Report commit status to freeanima PR
         if: success() && github.event_name == 'repository_dispatch' && github.event.client_payload.sha != ''
@@ -100,8 +134,17 @@ jobs:
           REPO: ${{ github.event.client_payload.repo_full_name }}
           SHA: ${{ github.event.client_payload.sha }}
         run: |
+          STAGE="unknown"
+          if [[ -f blackbox-debug/fail-stage.txt ]]; then
+            STAGE="$(tr -d '\n' < blackbox-debug/fail-stage.txt)"
+          fi
+          SHORT_SHA="$(git -C freeanima rev-parse --short HEAD 2>/dev/null || echo "${FREEANIMA_SHA}")"
+          DESC="Blackbox failed (${STAGE}) @ ${SHORT_SHA}"
+          if ((${#DESC} > 140)); then
+            DESC="${DESC:0:137}..."
+          fi
           curl -fsS -X POST \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${REPO}/statuses/${SHA}" \
-            -d "{\"state\":\"failure\",\"context\":\"freeanima/blackbox\",\"description\":\"Blackbox failed\",\"target_url\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+            -d "{\"state\":\"failure\",\"context\":\"freeanima/blackbox\",\"description\":\"${DESC}\",\"target_url\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"

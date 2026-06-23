@@ -4,6 +4,13 @@ set -euo pipefail
 # shellcheck source=compose-env.sh
 source "$(dirname "$0")/compose-env.sh"
 
+on_fail() {
+  local stage=$1
+  echo "::error title=Blackbox 失败::阶段=${stage}（详见下方调试上下文与 artifacts）" >&2
+  bash "$ROOT/scripts/debug-context.sh" "$stage" || true
+  exit 1
+}
+
 cleanup() {
   if [[ "${KEEP_STACK:-0}" != "1" ]]; then
     bash "$ROOT/scripts/stack-down.sh" || true
@@ -15,8 +22,7 @@ wait_bg() {
   local pid=$1
   local label=$2
   if ! wait "$pid"; then
-    echo "[run-blackbox] 失败: $label" >&2
-    exit 1
+    on_fail "$label"
   fi
 }
 
@@ -54,8 +60,14 @@ for i in "${!pids[@]}"; do
   wait_bg "${pids[$i]}" "${labels[$i]}"
 done
 
-echo "[run-blackbox] API + Playwright UI …"
-compose run --rm --no-deps tester sh -c \
-  'bun test blackbox/api && node node_modules/@playwright/test/cli.js test'
+echo "[run-blackbox] API 测试 …"
+if ! compose run --rm --no-deps tester bun test blackbox/api; then
+  on_fail "api-tests"
+fi
+
+echo "[run-blackbox] Playwright UI …"
+if ! compose run --rm --no-deps tester node node_modules/@playwright/test/cli.js test; then
+  on_fail "ui-tests"
+fi
 
 echo "[run-blackbox] 全部通过"

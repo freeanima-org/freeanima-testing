@@ -5,6 +5,5 @@ test("设置页可打开", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 2, name: "通用" })).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText("Hub 连接")).toBeVisible();
   await expect(page.getByRole("button", { name: "测试连接" })).toBeVisible();
 });

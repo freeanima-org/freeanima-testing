@@ -75,23 +75,30 @@ done
 
 write_section "Anima 容器内 health 探针"
 compose exec -T anima bun -e "
-fetch('http://127.0.0.1:2658/api/health')
-  .then(async (r) => {
+const checks = [
+  ['hub', 'http://127.0.0.1:2658/api/health'],
+  ['web', 'http://127.0.0.1:2659/health'],
+];
+for (const [label, url] of checks) {
+  try {
+    const r = await fetch(url);
+    const text = await r.text();
+    console.log('---', label, url, '---');
     console.log('status:', r.status, r.statusText);
-    console.log('body:', (await r.text()).slice(0, 2000));
-  })
-  .catch((e) => {
+    console.log('body:', text.slice(0, 2000));
+  } catch (e) {
+    console.error('---', label, url, '---');
     console.error('probe_error:', e);
-    process.exit(1);
-  });
+  }
+}
 " 2>&1 | tee "$DEBUG_DIR/anima-health-probe.log" | tee -a "$DEBUG_DIR/full.log" || true
 
 write_section "Tester 网络 API 探针（与测试相同网络）"
 compose run --rm --no-deps tester bun -e "
-const base = process.env.ANIMA_BASE_URL ?? 'http://anima:2658';
-for (const path of ['/api/health', '/api/sessions/']) {
+const apiBase = process.env.ANIMA_BASE_URL ?? 'http://anima:2658';
+for (const path of ['/api/health']) {
   try {
-    const r = await fetch(base + path);
+    const r = await fetch(apiBase + path);
     const text = await r.text();
     console.log('---', path, '---');
     console.log('status:', r.status, r.statusText);
@@ -102,6 +109,23 @@ for (const path of ['/api/health', '/api/sessions/']) {
   }
 }
 " 2>&1 | tee "$DEBUG_DIR/api-probe.log" | tee -a "$DEBUG_DIR/full.log" || true
+
+write_section "Tester 网络 Web 探针"
+compose run --rm --no-deps tester bun -e "
+const webBase = process.env.ANIMA_WEB_BASE_URL ?? 'http://anima:2659';
+for (const path of ['/health', '/settings']) {
+  try {
+    const r = await fetch(webBase + path);
+    const text = await r.text();
+    console.log('---', path, '---');
+    console.log('status:', r.status, r.statusText);
+    console.log('body:', text.slice(0, 500));
+  } catch (e) {
+    console.error('---', path, '---');
+    console.error('error:', e);
+  }
+}
+" 2>&1 | tee "$DEBUG_DIR/web-probe.log" | tee -a "$DEBUG_DIR/full.log" || true
 
 # 供 GitHub Step Summary / 主仓快速浏览
 {

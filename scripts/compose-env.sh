@@ -11,6 +11,7 @@ else
 fi
 export PG_PASSWORD="${PG_PASSWORD:-testing-blackbox}"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-sk-blackbox-unused}"
+export REMOTE_AUTH_TOKEN="${REMOTE_AUTH_TOKEN:-changeme-remote-auth-token}"
 export COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker/docker-compose.yml}"
 export TESTER_IMAGE="${TESTER_IMAGE:-}"
 

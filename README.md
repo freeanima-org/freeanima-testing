@@ -9,8 +9,8 @@
 ```
 Compose 内部网络（固定端口，不映射宿主机）
   postgres:5432 ─┐
-  redis:6379    ─┼→ anima:2658（oven/bun + 源码 volume mount）
-                 └→ tester（GHCR 预构建镜像 / 本地 compose build）→ http://anima:2658
+  redis:6379    ─┼→ anima:2658（Hub API）+ anima:2659（Web UI，web.enabled）
+                 └→ tester → API http://anima:2658 · UI http://anima:2659
 ```
 
 被测代码通过 **checkout / submodule 指定 SHA** 挂载进 anima 容器，不用主仓 npm `@freeanima/cli` 镜像，以便 PR 验证真实源码。
@@ -78,7 +78,7 @@ client-payload: { "sha": "...", "pr_number": 123, "repo_full_name": "freeanima-o
 
 ```
 blackbox/api/          # fetch 契约测试
-blackbox/ui/           # Playwright（含原 chamber smoke）
+blackbox/ui/           # Playwright（Web 设置页 smoke）
 config/                # 黑盒专用 config 模板（compose 服务名）
 docker/                # compose 栈 + tester Dockerfile（发布至 GHCR）
 generators/            # 测试数据转换（Issue #2）

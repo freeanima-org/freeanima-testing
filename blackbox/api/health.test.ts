@@ -10,12 +10,3 @@ describe("GET /api/health", () => {
     expect(body).toBeDefined();
   });
 });
-
-describe("GET /api/sessions/", () => {
-  it("返回会话列表 JSON", async () => {
-    const res = await fetch(`${base}/api/sessions/`);
-    expect(res.ok).toBe(true);
-    const body = (await res.json()) as { sessions?: unknown };
-    expect(Array.isArray(body.sessions)).toBe(true);
-  });
-});

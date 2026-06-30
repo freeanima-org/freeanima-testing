@@ -2,6 +2,11 @@ import { defineConfig } from "@playwright/test";
 
 const inComposeTester = (process.env.ANIMA_WEB_BASE_URL ?? "").includes("anima:");
 
+function webBaseUrl(): string {
+  const raw = process.env.ANIMA_WEB_BASE_URL ?? "http://127.0.0.1:2658/web";
+  return raw.endsWith("/") ? raw : `${raw}/`;
+}
+
 export default defineConfig({
   testDir: "blackbox/ui",
   timeout: 120_000,
@@ -14,7 +19,7 @@ export default defineConfig({
       ? [["list"], ["html", { open: "never" }]]
       : [["list"]],
   use: {
-    baseURL: process.env.ANIMA_WEB_BASE_URL ?? "http://127.0.0.1:2658/web",
+    baseURL: webBaseUrl(),
     trace: "retain-on-failure",
     launchOptions: inComposeTester
       ? { args: ["--no-sandbox", "--disable-setuid-sandbox"] }

@@ -43,12 +43,16 @@ export async function seedWebHubPrefs(page: Page): Promise<void> {
   );
 }
 
-/** shell-bridge 异步完成前，路由可能仍判定需要 Hub 引导 */
+/** 等待 shell-bridge 就绪（路由与 Hub 状态依赖此 Promise） */
 export async function waitForShellHubReady(page: Page): Promise<void> {
   await page.waitForFunction(
-    () => Boolean(window.satelliteShell?.remoteAuth?.token?.trim()),
-    undefined,
+    () =>
+      (window as { __freeanimaShellBridge?: { ready?: Promise<void> } }).__freeanimaShellBridge
+        ?.ready != null,
     { timeout: 60_000 },
+  );
+  await page.evaluate(() =>
+    (window as { __freeanimaShellBridge: { ready: Promise<void> } }).__freeanimaShellBridge.ready,
   );
 }
 
@@ -58,8 +62,11 @@ export async function completeHubSetupIfNeeded(page: Page): Promise<void> {
   if (!(await setupHeading.isVisible({ timeout: 3_000 }).catch(() => false))) {
     return;
   }
-  await page.getByLabel("Hub 地址").fill(hubApiBaseUrl());
-  await page.getByLabel("Hub API Token").fill(remoteAuthToken());
+  await page.getByPlaceholder("http://127.0.0.1:2658").fill(hubApiBaseUrl());
+  const tokenField = page
+    .getByLabel("Hub API Token")
+    .or(page.locator('input[type="password"]'));
+  await tokenField.fill(remoteAuthToken());
   await page.getByRole("button", { name: "保存并进入" }).click();
   await expect(setupHeading).not.toBeVisible({ timeout: 60_000 });
 }

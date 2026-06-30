@@ -9,8 +9,8 @@
 ```
 Compose 内部网络（固定端口，不映射宿主机）
   postgres:5432 ─┐
-  redis:6379    ─┼→ anima:2658（Hub API）+ anima:2659（Web UI，web.enabled）
-                 └→ tester → API http://anima:2658 · UI http://anima:2659
+  redis:6379    ─┼→ anima:2658（Hub：/api/* + /web/*，web.enabled）
+                 └→ tester → API http://anima:2658 · UI http://anima:2658/web
 ```
 
 被测代码通过 **checkout / submodule 指定 SHA** 挂载进 anima 容器，不用主仓 npm `@freeanima/cli` 镜像，以便 PR 验证真实源码。

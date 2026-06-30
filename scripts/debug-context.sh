@@ -77,7 +77,7 @@ write_section "Anima 容器内 health 探针"
 compose exec -T anima bun -e "
 const checks = [
   ['hub', 'http://127.0.0.1:2658/api/health'],
-  ['web', 'http://127.0.0.1:2659/health'],
+  ['web', 'http://127.0.0.1:2658/web/health'],
 ];
 for (const [label, url] of checks) {
   try {
@@ -112,7 +112,7 @@ for (const path of ['/api/health']) {
 
 write_section "Tester 网络 Web 探针"
 compose run --rm --no-deps tester bun -e "
-const webBase = process.env.ANIMA_WEB_BASE_URL ?? 'http://anima:2659';
+const webBase = process.env.ANIMA_WEB_BASE_URL ?? 'http://anima:2658/web';
 for (const path of ['/health', '/settings']) {
   try {
     const r = await fetch(webBase + path);

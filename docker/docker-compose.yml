@@ -53,7 +53,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'bun -e "Promise.all([fetch(''http://127.0.0.1:2658/api/health''),fetch(''http://127.0.0.1:2659/health'')]).then(rs=>process.exit(rs.every(r=>r.ok)?0:1)).catch(()=>process.exit(1))"',
+          'bun -e "Promise.all([fetch(''http://127.0.0.1:2658/api/health''),fetch(''http://127.0.0.1:2658/web/health'')]).then(rs=>process.exit(rs.every(r=>r.ok)?0:1)).catch(()=>process.exit(1))"',
         ]
       interval: 3s
       timeout: 5s
@@ -71,7 +71,7 @@ services:
       - tester_node_modules:/workspace/node_modules
     environment:
       ANIMA_BASE_URL: http://anima:2658
-      ANIMA_WEB_BASE_URL: http://anima:2659
+      ANIMA_WEB_BASE_URL: http://anima:2658/web
       CI: ${CI:-}
       GITHUB_ACTIONS: ${GITHUB_ACTIONS:-}
     depends_on:

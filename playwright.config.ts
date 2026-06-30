@@ -14,7 +14,7 @@ export default defineConfig({
       ? [["list"], ["html", { open: "never" }]]
       : [["list"]],
   use: {
-    baseURL: process.env.ANIMA_WEB_BASE_URL ?? "http://127.0.0.1:2659",
+    baseURL: process.env.ANIMA_WEB_BASE_URL ?? "http://127.0.0.1:2658/web",
     trace: "retain-on-failure",
     launchOptions: inComposeTester
       ? { args: ["--no-sandbox", "--disable-setuid-sandbox"] }
